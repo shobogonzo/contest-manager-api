@@ -1,0 +1,47 @@
+name: prod
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  deploy:
+    concurrency: prod-environment
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.PROD_DEPLOYMENT_ROLE }}
+          role-session-name: GithubActionsSession
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Deploy temp environment
+        run: |
+          yarn sls deploy --stage staging --param="ssm-stage=prod"
+          yarn sls export-env --all --stage staging --param="ssm-stage=prod"
+
+      - name: Run integration tests
+        run: yarn cross-env INTEG_TEST=true jest ./tests/test_cases/integration --silent
+
+      - name: Run e2e tests
+        run: yarn jest ./tests/test_cases/e2e --silent
+
+      - name: Destroy temp environment
+        run: yarn sls remove --stage staging --param="ssm-stage=prod"
+
+      - name: Deploy to prod
+        run: yarn sls deploy --stage prod

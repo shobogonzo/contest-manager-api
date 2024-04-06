@@ -1,0 +1,43 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  listUsers(limit: Int!, nextToken: String!): [User]!
+}
+
+type Mutation {
+  addUser(user: UserInput!): ID
+}
+
+type User {
+  username: String!
+  firstName: String!
+  lastName: String!
+  email: AWSEmail!
+  phone: String!
+  roles: [UserRole!]!
+}
+
+input UserInput {
+  firstName: String!
+  lastName: String!
+  email: AWSEmail!
+  phone: String! # TODO use AWSPhoneNumber
+  roles: [UserRole!]!
+}
+
+enum UserRole {
+  SUPER_USER
+  ADMINISTRATOR
+  SCHEDULER
+  DIRECTOR
+  CONTESTANT
+  JUDGE
+}
+
+enum UserStatus {
+  ENABLED
+  DISABLED
+}

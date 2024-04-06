@@ -1,0 +1,172 @@
+service: ${self:custom.name}-service
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  architecture: arm64
+  logRetentionInDays: 14
+  environment:
+    SERVICE_NAME: ${self:service}
+    SSM_STAGE: ${param:ssm-stage, sls:stage}
+    MIDDY_CACHE_ENABLED: true
+    MIDDY_CACHE_EXPIRATION_MILLISECONDS: 6000
+
+plugins:
+  - serverless-appsync-plugin
+  - serverless-esbuild
+  - serverless-export-env
+  - serverless-export-outputs
+  - serverless-iam-roles-per-function
+
+package:
+  individually: true
+
+custom:
+  name: contest-manager
+  logLevel:
+    dev: ALL
+    test: ALL
+    prod: ERROR
+    default: ERROR
+  region: ${opt:region, 'us-east-1'}
+
+  # Plugin configuration
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: true
+    packager: 'yarn'
+    exclude: ['@aws-sdk/*']
+  exportOutputs:
+    include:
+      - GraphQlApiUrl
+      - UserPoolId
+      - UserPoolClientId
+    output:
+      file: ./.env.test.local
+  export-env:
+    overwrite: true
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+
+appSync:
+  name: contest-manager-api
+  schema: schema.api.graphql
+  authentication:
+    type: AMAZON_COGNITO_USER_POOLS
+    config:
+      awsRegion: ${self:custom.region}
+      defaultAction: ALLOW
+      userPoolId: !Ref UserPool
+  logging:
+    level: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
+    retentionInDays: 14
+
+  resolvers:
+    Query.listUsers:
+      kind: UNIT
+      dataSource: contestManagerTable
+      code: resolvers/listUsers.ts
+
+  dataSources:
+    contestManagerTable:
+      type: AMAZON_DYNAMODB
+      description: 'Main App Table'
+      config:
+        tableName: !Ref ContestManagerTable
+
+functions:
+  confirmUserSignup:
+    handler: functions/confirm-user-signup.handler
+    environment:
+      TABLE_NAME: !Ref ContestManagerTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt ContestManagerTable.Arn
+
+resources:
+  Resources:
+    ContestManagerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.name}-user-pool-${sls:stage}
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 10
+            RequireLowercase: false
+            RequireNumbers: false
+            RequireSymbols: false
+            RequireUppercase: false
+        AliasAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Schema:
+          - Name: email
+            Required: true
+          - Name: tenantId
+            Mutable: false
+            AttributeDataType: String
+        LambdaConfig:
+          PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    UserPoolInvokeConfirmUserSignupLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref ConfirmUserSignupLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.name}-client-${sls:stage}
+        GenerateSecret: false
+        UserPoolId: !Ref UserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        PreventUserExistenceErrors: ENABLED
+
+    IdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: ${self:custom.name}-identity-pool-${sls:stage}
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId: !Ref UserPoolClient
+            ProviderName: !GetAtt UserPool.ProviderName
+
+    UserPoolCustomDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: ${self:custom.name}-${sls:stage}
+        UserPoolId: !Ref UserPool
+
+  Outputs:
+    GraphQlApiUrl:
+      Value: !GetAtt GraphQlApi.GraphQLUrl
+    UserPoolId:
+      Value: !Ref UserPool
+    UserPoolClientId:
+      Value: !Ref UserPoolClient
