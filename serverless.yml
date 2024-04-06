@@ -34,6 +34,7 @@ custom:
   waf:
     prod: true
     dev: false
+    default: false
 
   # Plugin configuration
   esbuild:
@@ -67,7 +68,7 @@ appSync:
     level: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
     retentionInDays: 14
   waf:
-    enabled: ${self:custom.waf.${self:provider.stage}}
+    enabled: ${self:custom.waf.${sls:stage}, self:custom.waf.default}
     defaultAction: 'Allow'
     rules:
       - throttle
