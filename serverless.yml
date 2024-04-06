@@ -62,6 +62,12 @@ appSync:
   logging:
     level: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
     retentionInDays: 14
+  waf:
+    enabled: true
+    defaultAction: 'Allow'
+    rules:
+      - throttle
+      - disableIntrospection
 
   resolvers:
     Query.listUsers:
