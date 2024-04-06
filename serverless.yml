@@ -5,6 +5,7 @@ provider:
   name: aws
   runtime: nodejs20.x
   architecture: arm64
+  stage: ${opt:stage, 'dev'}
   logRetentionInDays: 14
   environment:
     SERVICE_NAME: ${self:service}
@@ -24,12 +25,16 @@ package:
 
 custom:
   name: contest-manager
+  region: ${opt:region, 'us-east-1'}
   logLevel:
     dev: ALL
     test: ALL
     prod: ERROR
     default: ERROR
-  region: ${opt:region, 'us-east-1'}
+  waf:
+    prod: true
+    dev: false
+    default: false
 
   # Plugin configuration
   esbuild:
@@ -62,6 +67,12 @@ appSync:
   logging:
     level: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
     retentionInDays: 14
+  waf:
+    enabled: ${self:custom.waf.${sls:stage}, self:custom.waf.default}
+    defaultAction: 'Allow'
+    rules:
+      - throttle
+      - disableIntrospection
 
   resolvers:
     Query.listUsers:
