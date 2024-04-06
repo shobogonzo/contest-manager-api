@@ -35,10 +35,10 @@ jobs:
           yarn sls export-env --all --stage dev-ci --param="ssm-stage=dev"
 
       - name: Run integration tests
-        run: yarn cross-env INTEG_TEST=true jest ./tests/test_cases/integration --silent
+        run: yarn cross-env INTEG_TEST=true jest ./tests/test-cases/integration --silent
 
       #   - name: Run e2e tests
-      #     run: yarn jest ./tests/test_cases/e2e --silent
+      #     run: yarn jest ./tests/test-cases/e2e --silent
 
       - name: Destroy temp environment
         run: yarn sls remove --stage dev-ci --param="ssm-stage=dev"
