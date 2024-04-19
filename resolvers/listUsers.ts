@@ -15,10 +15,12 @@ export const request = (
 };
 
 export const response = (ctx: Context): User[] => {
-  return ctx.result.items.map((ddbItem: any) => ({
-    username: ddbItem.PK.split('#')[1],
-    firstName: ddbItem.firstName,
-    lastName: ddbItem.lastName,
-    email: ddbItem.email
+  return ctx.result.items.map((user: any) => ({
+    username: user.username,
+    status: user.status,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phone: user.phone
   }));
 };

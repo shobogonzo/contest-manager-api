@@ -20,6 +20,7 @@ const we_invoke_confirmUserSignup = async (user: User, tenantId: string) => {
         given_name: user.firstName,
         family_name: user.lastName,
         email: user.email,
+        phone_number: user.phone,
         'custom:tenantId': tenantId
       },
       clientMetadata: {

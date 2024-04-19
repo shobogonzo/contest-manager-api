@@ -18,17 +18,17 @@ const chance = require('chance').Chance();
 const a_random_user = () => {
   const firstName = chance.first({ nationality: 'en' });
   const lastName = chance.last({ nationality: 'en' });
-  const suffix = chance.string({
-    length: 6,
-    pool: 'abcdefghijklmnopqrstuvwxyz'
-  });
-  const email = `${firstName}-${lastName}-${suffix}@test.com`;
+  const email = `${firstName}-${lastName}@test.com`;
+  const username = email;
+  const phone = chance.phone({ formatted: false });
   const password = chance.string({ length: 10, password: true });
 
   return {
+    username,
     firstName,
     lastName,
     email,
+    phone,
     password
   };
 };
