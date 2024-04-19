@@ -8,8 +8,8 @@
     "sls": "sls",
     "codegen": "graphql-codegen --config codegen.ts",
     "export-env": "sls export-env --all",
-    "upload-amplify-config": "node create-default-config.js",
-    "bootstrap": "graphql-codegen --config codegen.ts && sls deploy && sls export-env && node create-default-config.js",
+    "deploy-default-config": "node deploy-default-config.js",
+    "bootstrap": "graphql-codegen --config codegen.ts && sls deploy -s local-dev && sls export-env -s local-dev -v && node deploy-default-config.js",
     "test:integration": "cross-env INTEG_TEST=true jest ./tests/test-cases/integration",
     "test:e2e": "jest ./tests/test-cases/e2e"
   },

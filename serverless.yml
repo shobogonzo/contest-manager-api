@@ -218,9 +218,9 @@ resources:
     AmplifyConfigBucket:
       Type: AWS::S3::Bucket
       Properties:
+        AccessControl: Private
         BucketName:
           Fn::Sub: ${self:custom.name}-amplify-config-${sls:stage}
-        AccessControl: Private
 
     Distribution:
       Type: AWS::CloudFront::Distribution
@@ -250,8 +250,8 @@ resources:
       Type: AWS::CloudFront::OriginAccessControl
       Properties:
         OriginAccessControlConfig:
-          Name: !GetAtt AmplifyConfigBucket.RegionalDomainName
-          Description: 'OAC for ${self:custom.name}'
+          Name: !Ref AmplifyConfigBucket
+          Description: OAC for ${self:service} Amplify config access
           OriginAccessControlOriginType: s3
           SigningBehavior: always
           SigningProtocol: sigv4
