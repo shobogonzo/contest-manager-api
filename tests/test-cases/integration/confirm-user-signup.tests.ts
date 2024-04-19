@@ -12,7 +12,6 @@ describe('When confirmUserSignup runs', () => {
   beforeAll(async () => {
     tenant = await given.an_existing_tenant(chance.company(), 'ACTIVE');
     user = given.a_random_user();
-    user.username = 'test-user-42';
     user.roles = [UserRole.Administrator, UserRole.Scheduler];
     await when.we_invoke_confirmUserSignup(user, tenant.id);
   });
@@ -35,6 +34,7 @@ describe('When confirmUserSignup runs', () => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      phone: user.phone,
       roles: user.roles,
       status: UserStatus.Enabled,
       createdAt: expect.stringMatching(

@@ -12,6 +12,7 @@ provider:
     SSM_STAGE: ${param:ssm-stage, sls:stage}
     MIDDY_CACHE_ENABLED: true
     MIDDY_CACHE_EXPIRATION_MILLISECONDS: 6000
+    POWERTOOLS_LOGGER_LOG_EVENT: ${self:custom.logEvent.${sls:stage}, self:custom.logEvent.default}
 
 plugins:
   - serverless-appsync-plugin
@@ -31,6 +32,11 @@ custom:
     test: ALL
     prod: ERROR
     default: ERROR
+  logEvent:
+    dev: true
+    test: true
+    prod: false
+    default: false
   waf:
     prod: true
     dev: false
@@ -45,9 +51,10 @@ custom:
     exclude: ['@aws-sdk/*']
   exportOutputs:
     include:
-      - GraphQlApiUrl
       - UserPoolId
       - UserPoolClientId
+      - IdentityPoolId
+      - GraphQlApiUrl
     output:
       file: ./.env.test.local
   export-env:
@@ -83,7 +90,7 @@ appSync:
   dataSources:
     contestManagerTable:
       type: AMAZON_DYNAMODB
-      description: 'Main App Table'
+      description: 'Contest Manager app table'
       config:
         tableName: !Ref ContestManagerTable
 
@@ -125,8 +132,6 @@ resources:
             RequireNumbers: false
             RequireSymbols: false
             RequireUppercase: false
-        AliasAttributes:
-          - email
         AutoVerifiedAttributes:
           - email
         Schema:
@@ -168,16 +173,116 @@ resources:
           - ClientId: !Ref UserPoolClient
             ProviderName: !GetAtt UserPool.ProviderName
 
-    UserPoolCustomDomain:
-      Type: AWS::Cognito::UserPoolDomain
+    AuthenticatedRole:
+      Type: AWS::IAM::Role
       Properties:
-        Domain: ${self:custom.name}-${sls:stage}
-        UserPoolId: !Ref UserPool
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: cognito-identity.amazonaws.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+                'ForAnyValue:StringLike':
+                  cognito-identity.amazonaws.com:amr: authenticated
+
+    UnauthenticatedRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: cognito-identity.amazonaws.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+                'ForAnyValue:StringLike':
+                  cognito-identity.amazonaws.com:amr: unauthenticated
+
+    IdentityPoolRoleAttachment:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId: !Ref IdentityPool
+        Roles:
+          authenticated: !GetAtt AuthenticatedRole.Arn
+          unauthenticated: !GetAtt UnauthenticatedRole.Arn
+
+    AmplifyConfigBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: contest-manager-config
+        AccessControl: Private
+
+    Distribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Enabled: true
+          Origins:
+            - DomainName: !GetAtt AmplifyConfigBucket.RegionalDomainName
+              Id: S3Origin
+              OriginAccessControlId: !Ref OriginAccessControl
+              S3OriginConfig:
+                OriginAccessIdentity: ''
+          DefaultCacheBehavior:
+            TargetOriginId: S3Origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: ['GET', 'HEAD', 'OPTIONS']
+            CachedMethods: ['GET', 'HEAD', 'OPTIONS']
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized
+            OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf # Managed-CORS-S3Origin
+            ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd # Managed-CORS-With-Preflight
+            ForwardedValues:
+              QueryString: false
+              Cookies:
+                Forward: none
+
+    OriginAccessControl:
+      Type: AWS::CloudFront::OriginAccessControl
+      Properties:
+        OriginAccessControlConfig:
+          Name: !GetAtt AmplifyConfigBucket.RegionalDomainName
+          Description: 'OAC for ${self:custom.name}'
+          OriginAccessControlOriginType: s3
+          SigningBehavior: always
+          SigningProtocol: sigv4
+
+    AmplifyConfigBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref AmplifyConfigBucket
+        PolicyDocument:
+          Statement:
+            - Action: s3:GetObject
+              Effect: Allow
+              Resource: !Sub ${AmplifyConfigBucket.Arn}/*
+              Principal:
+                Service: cloudfront.amazonaws.com
+              Condition:
+                StringEquals:
+                  AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+            - Effect: Deny
+              Principal: '*'
+              Action: 's3:*'
+              Resource:
+                - !Sub ${AmplifyConfigBucket.Arn}/*
+                - !GetAtt AmplifyConfigBucket.Arn
+              Condition:
+                Bool:
+                  aws:SecureTransport: false
 
   Outputs:
-    GraphQlApiUrl:
-      Value: !GetAtt GraphQlApi.GraphQLUrl
     UserPoolId:
       Value: !Ref UserPool
     UserPoolClientId:
       Value: !Ref UserPoolClient
+    IdentityPoolId:
+      Value: !Ref IdentityPool
+    GraphQlApiUrl:
+      Value: !GetAtt GraphQlApi.GraphQLUrl

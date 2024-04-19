@@ -4,7 +4,7 @@ schema {
 }
 
 type Query {
-  listUsers(limit: Int!, nextToken: String!): [User]!
+  listUsers(limit: Int!, nextToken: String): [User]!
 }
 
 type Mutation {
@@ -13,19 +13,18 @@ type Mutation {
 
 type User {
   username: String!
+  status: UserStatus!
   firstName: String!
   lastName: String!
   email: AWSEmail!
-  phone: String!
-  roles: [UserRole!]!
+  phone: String #TODO use AWSPhoneNumber
 }
 
 input UserInput {
   firstName: String!
   lastName: String!
   email: AWSEmail!
-  phone: String! # TODO use AWSPhoneNumber
-  roles: [UserRole!]!
+  phone: String
 }
 
 enum UserRole {

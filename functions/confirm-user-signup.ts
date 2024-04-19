@@ -31,11 +31,12 @@ const lambdaHandler = async (event: PostConfirmationTriggerEvent) => {
           firstName: event.request.userAttributes['given_name'],
           lastName: event.request.userAttributes['family_name'],
           email: event.request.userAttributes['email'],
+          phone: event.request.userAttributes['phone_number'],
           status: UserStatus.Enabled,
           roles: event.request.clientMetadata?.roles,
           createdAt: new Date().toISOString()
         },
-        ConditionExpression: 'attribute_not_exists(id)'
+        ConditionExpression: 'attribute_not_exists(username)'
       })
     );
     logger.info(`[${username}] - added user to tenant [${tenantId}]`, result);
