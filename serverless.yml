@@ -55,6 +55,8 @@ custom:
       - UserPoolClientId
       - IdentityPoolId
       - GraphQlApiUrl
+      - AmplifyConfigBucket
+      - DistributionDomainName
     output:
       file: ./.env.test.local
   export-env:
@@ -216,7 +218,8 @@ resources:
     AmplifyConfigBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: contest-manager-config
+        BucketName:
+          Fn::Sub: ${self:custom.name}-amplify-config-${sls:stage}
         AccessControl: Private
 
     Distribution:
@@ -286,3 +289,7 @@ resources:
       Value: !Ref IdentityPool
     GraphQlApiUrl:
       Value: !GetAtt GraphQlApi.GraphQLUrl
+    AmplifyConfigBucket:
+      Value: !Ref AmplifyConfigBucket
+    DistributionDomainName:
+      Value: !GetAtt Distribution.DomainName

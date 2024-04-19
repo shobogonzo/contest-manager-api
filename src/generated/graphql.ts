@@ -41,7 +41,7 @@ export type Query = {
 
 export type QueryListUsersArgs = {
   limit: Scalars['Int']['input'];
-  nextToken: Scalars['String']['input'];
+  nextToken?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type User = {
@@ -49,8 +49,8 @@ export type User = {
   email: Scalars['AWSEmail']['output'];
   firstName: Scalars['String']['output'];
   lastName: Scalars['String']['output'];
-  phone: Scalars['String']['output'];
-  roles: Array<UserRole>;
+  phone?: Maybe<Scalars['String']['output']>;
+  status: UserStatus;
   username: Scalars['String']['output'];
 };
 
@@ -58,8 +58,7 @@ export type UserInput = {
   email: Scalars['AWSEmail']['input'];
   firstName: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
-  phone: Scalars['String']['input'];
-  roles: Array<UserRole>;
+  phone?: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum UserRole {
