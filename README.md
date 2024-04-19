@@ -1,5 +1,7 @@
 # Contest Manager API
 
+[![dev](https://github.com/shobogonzo/contest-manager-api/actions/workflows/dev.yml/badge.svg)](https://github.com/shobogonzo/contest-manager-api/actions/workflows/dev.yml)
+
 ## Getting Started
 
 ### Prerequisites
