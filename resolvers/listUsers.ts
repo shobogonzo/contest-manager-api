@@ -17,6 +17,7 @@ export const request = (
 export const response = (ctx: Context): User[] => {
   return ctx.result.items.map((user: any) => ({
     username: user.username,
+    status: user.status,
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
