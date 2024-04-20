@@ -220,7 +220,7 @@ resources:
       Properties:
         AccessControl: Private
         BucketName:
-          Fn::Sub: ${self:custom.name}-amplify-config-${sls:stage}
+          Fn::Sub: ${self:service}-amplify-config-${sls:stage}
 
     Distribution:
       Type: AWS::CloudFront::Distribution
