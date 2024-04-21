@@ -38,11 +38,13 @@ jobs:
       - name: Run integration tests
         run: yarn cross-env INTEG_TEST=true jest ./tests/test-cases/integration --silent
 
-      # - name: Run e2e tests
-      #   run: yarn jest ./tests/test-cases/e2e --silent
+      - name: Run e2e tests
+        run: yarn jest ./tests/test-cases/e2e --silent
 
       - name: Destroy temp environment
-        run: yarn sls remove --stage dev-ci --param="ssm-stage=dev"
+        run: |
+          aws s3 rb s3://contest-manager-service-amplify-config-dev-ci --force
+          yarn sls remove --stage dev-ci --param="ssm-stage=dev"
 
       - name: Deploy to dev
         run: yarn sls deploy --stage dev
