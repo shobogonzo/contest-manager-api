@@ -4,20 +4,35 @@ schema {
 }
 
 type Query {
-  listUsers(limit: Int!, nextToken: String): [User]!
+  listUsers(limit: Int!, nextToken: String): UsersPage!
 }
 
 type Mutation {
   addUser(user: UserInput!): ID
+  # updateUserProfile(proflie: UserProfileInput!): User!
 }
 
-type User {
+interface IUser {
   username: String!
   status: UserStatus!
   firstName: String!
   lastName: String!
   email: AWSEmail!
   phone: String #TODO use AWSPhoneNumber
+}
+
+type User implements IUser {
+  username: String!
+  status: UserStatus!
+  firstName: String!
+  lastName: String!
+  email: AWSEmail!
+  phone: String
+}
+
+type UsersPage {
+  users: [User!]
+  nextToken: String
 }
 
 input UserInput {
