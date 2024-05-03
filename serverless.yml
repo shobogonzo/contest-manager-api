@@ -38,8 +38,8 @@ custom:
     prod: false
     default: false
   waf:
-    prod: true
     dev: false
+    prod: true
     default: false
 
   # Plugin configuration

@@ -23,6 +23,15 @@ export type Scalars = {
   AWSURL: { input: any; output: any; }
 };
 
+export type IUser = {
+  email: Scalars['AWSEmail']['output'];
+  firstName: Scalars['String']['output'];
+  lastName: Scalars['String']['output'];
+  phone?: Maybe<Scalars['String']['output']>;
+  status: UserStatus;
+  username: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   addUser?: Maybe<Scalars['ID']['output']>;
@@ -35,7 +44,7 @@ export type MutationAddUserArgs = {
 
 export type Query = {
   __typename?: 'Query';
-  listUsers: Array<Maybe<User>>;
+  listUsers: UsersPage;
 };
 
 
@@ -44,7 +53,7 @@ export type QueryListUsersArgs = {
   nextToken?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type User = {
+export type User = IUser & {
   __typename?: 'User';
   email: Scalars['AWSEmail']['output'];
   firstName: Scalars['String']['output'];
@@ -74,3 +83,9 @@ export enum UserStatus {
   Disabled = 'DISABLED',
   Enabled = 'ENABLED'
 }
+
+export type UsersPage = {
+  __typename?: 'UsersPage';
+  nextToken?: Maybe<Scalars['String']['output']>;
+  users?: Maybe<Array<User>>;
+};

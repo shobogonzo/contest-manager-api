@@ -1,5 +1,5 @@
 import { Context, DynamoDBScanRequest } from '@aws-appsync/utils';
-import { QueryListUsersArgs, User } from '../src/generated/graphql';
+import { IUser, QueryListUsersArgs, UsersPage } from '../src/generated/graphql';
 
 export const request = (
   ctx: Context<QueryListUsersArgs>
@@ -14,13 +14,9 @@ export const request = (
   return request;
 };
 
-export const response = (ctx: Context): User[] => {
-  return ctx.result.items.map((user: any) => ({
-    username: user.username,
-    status: user.status,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    phone: user.phone
-  }));
+export const response = (ctx: Context): UsersPage => {
+  return {
+    users: ctx.result?.items,
+    nextToken: ctx.result?.nextToken
+  };
 };
