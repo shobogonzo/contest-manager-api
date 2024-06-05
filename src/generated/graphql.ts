@@ -28,6 +28,7 @@ export type IUser = {
   firstName: Scalars['String']['output'];
   lastName: Scalars['String']['output'];
   phone?: Maybe<Scalars['String']['output']>;
+  roles: Array<UserRole>;
   status: UserStatus;
   username: Scalars['String']['output'];
 };
@@ -59,6 +60,7 @@ export type User = IUser & {
   firstName: Scalars['String']['output'];
   lastName: Scalars['String']['output'];
   phone?: Maybe<Scalars['String']['output']>;
+  roles: Array<UserRole>;
   status: UserStatus;
   username: Scalars['String']['output'];
 };

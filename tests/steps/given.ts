@@ -20,16 +20,29 @@ const a_random_user = () => {
   const lastName = chance.last({ nationality: 'en' });
   const email = `${firstName}-${lastName}@test.com`;
   const username = email;
+  const status = chance.pickone(['active', 'inactive']);
   const phone = chance.phone({ formatted: false });
   const password = chance.string({ length: 10, password: true });
+  const roles = chance.pickset(
+    [
+      UserRole.Administrator,
+      UserRole.Director,
+      UserRole.Scheduler,
+      UserRole.Contestant,
+      UserRole.Judge
+    ],
+    chance.natural({ min: 1, max: 5 })
+  );
 
   return {
     username,
+    status,
     firstName,
     lastName,
     email,
     phone,
-    password
+    password,
+    roles
   };
 };
 
@@ -43,7 +56,7 @@ const an_existing_tenant = async (name: string, status: string) => {
       TableName: process.env.TABLE_NAME,
       Item: {
         PK: `TENANT#${tenantId}`,
-        SK: `DETAILS`,
+        SK: `DETAILS#${name}`,
         name,
         status,
         createdAt
@@ -80,8 +93,8 @@ const an_existing_user = async (
     new PutCommand({
       TableName: process.env.TABLE_NAME,
       Item: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${username}`,
+        PK: `TENANT#${tenantId}#USER#${username}`,
+        SK: `DETAILS#${lastName}`,
         username,
         firstName,
         lastName,

@@ -19,6 +19,7 @@ interface IUser {
   lastName: String!
   email: AWSEmail!
   phone: String #TODO use AWSPhoneNumber
+  roles: [UserRole!]!
 }
 
 type User implements IUser {
@@ -28,6 +29,7 @@ type User implements IUser {
   lastName: String!
   email: AWSEmail!
   phone: String
+  roles: [UserRole!]!
 }
 
 type UsersPage {
@@ -41,6 +43,20 @@ input UserInput {
   email: AWSEmail!
   phone: String
 }
+
+# type UserProfileInput {
+#   firstName: String!
+#   lastName: String!
+#   email: AWSEmail!
+#   phone: String
+# }
+
+# type UserProfile {
+#   firstName: String!
+#   lastName: String!
+#   email: AWSEmail!
+#   phone: String
+# }
 
 enum UserRole {
   SUPER_USER

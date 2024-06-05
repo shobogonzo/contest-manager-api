@@ -15,12 +15,13 @@ const userSeedData = Array.from({ length: 50 }, () => {
   const tenantId = chance.guid();
   const username = chance.word({ length: 8, nationality: 'en' });
 
+  const lastName = chance.last({ nationality: 'en' });
   return {
-    PK: `TENANT#${tenantId}`,
-    SK: `USER#${username}`,
+    PK: `TENANT#${tenantId}#USER#${username}`,
+    SK: `DETAILS#${lastName}`,
     username,
     firstName: chance.first({ nationality: 'en' }),
-    lastName: chance.last({ nationality: 'en' }),
+    lastName,
     email: chance.email(),
     phone: chance.phone(),
     status: 'ENABLED',

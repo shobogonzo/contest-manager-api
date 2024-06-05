@@ -30,6 +30,7 @@ const a_tenant = async (tenant) => {
 
 const a_user = async (
   username: string,
+  lastName: string,
   tenantId: string,
   deleteFromCognito: boolean = false
 ) => {
@@ -41,34 +42,12 @@ const a_user = async (
     new DeleteCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${username}`
+        PK: `TENANT#${tenantId}#USER#${username}`,
+        SK: `DETAILS#${lastName}`
       }
     })
   );
-  const tokenResp = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'SK = :sk',
-      ExpressionAttributeValues: {
-        ':sk': `TENANT#${tenantId}#USER#${username}`
-      }
-    })
-  );
-  const token = tokenResp.Items[0];
-  if (token) {
-    console.log(`[${username}] - deleting user token [${token.PK}]`);
-    await docClient.send(
-      new DeleteCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: token.PK,
-          SK: token.SK
-        }
-      })
-    );
-    console.log(`[${username}] - user deleted from tenant [${tenantId}]`);
-  }
+
   if (deleteFromCognito) {
     console.log(`[${username}] - deleting user from user pool [${UserPoolId}]`);
     await cognito.send(

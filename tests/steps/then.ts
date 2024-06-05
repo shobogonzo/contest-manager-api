@@ -32,14 +32,18 @@ const tenant_exists_in_DynamoDB = async (tenant) => {
   return resp.Item;
 };
 
-const user_exists_in_DynamoDB = async (username: string, tenantId: string) => {
+const user_exists_in_DynamoDB = async (
+  username: string,
+  lastName: string,
+  tenantId: string
+) => {
   console.log(`looking for user [${username}] in tenant [${tenantId}]`);
   const resp = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${username}`
+        PK: `TENANT#${tenantId}#USER#${username}`,
+        SK: `DETAILS#${lastName}`
       }
     })
   );
@@ -78,29 +82,9 @@ const user_belongs_to_CognitoGroup = async (username, group) => {
   return resp;
 };
 
-const user_confirmation_exists_in_DynamoDB = async (username, tenantId) => {
-  console.log(
-    `looking for confirmation for user [${username}] under tenant [${tenantId}]`
-  );
-  const resp = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'SK = :sk',
-      ExpressionAttributeValues: {
-        ':sk': `TENANT#${tenantId}#USER#${username}`
-      }
-    })
-  );
-
-  expect(resp.Items[0]).toBeTruthy();
-
-  return resp.Items[0];
-};
-
 export default {
   tenant_exists_in_DynamoDB,
   user_exists_in_DynamoDB,
   user_exists_in_Cognito,
-  user_belongs_to_CognitoGroup,
-  user_confirmation_exists_in_DynamoDB
+  user_belongs_to_CognitoGroup
 };

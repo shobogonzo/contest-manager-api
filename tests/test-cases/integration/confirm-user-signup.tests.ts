@@ -2,12 +2,12 @@ import given from '../../steps/given';
 import when from '../../steps/when';
 import then from '../../steps/then';
 import teardown from '../../steps/teardown';
-import { UserRole, UserStatus } from '../../../src/generated/graphql';
+import { User, UserRole, UserStatus } from '../../../src/generated/graphql';
 const chance = require('chance').Chance();
 
 describe('When confirmUserSignup runs', () => {
-  let tenant;
-  let user;
+  let tenant: { id: any; name?: string; status?: string; createdAt?: string };
+  let user: User;
 
   beforeAll(async () => {
     tenant = await given.an_existing_tenant(chance.company(), 'ACTIVE');
@@ -17,19 +17,20 @@ describe('When confirmUserSignup runs', () => {
   });
 
   afterAll(async () => {
+    await teardown.a_user(user.username, user.lastName, tenant.id);
     await teardown.a_tenant(tenant);
-    await teardown.a_user(user.username, tenant.id);
   });
 
   it("The user should be saved in 'Enabled' status", async () => {
     const ddbUser = await then.user_exists_in_DynamoDB(
       user.username,
+      user.lastName,
       tenant.id
     );
 
     expect(ddbUser).toMatchObject({
-      PK: `TENANT#${tenant.id}`,
-      SK: `USER#${user.username}`,
+      PK: `TENANT#${tenant.id}#USER#${user.username}`,
+      SK: `DETAILS#${user.lastName}`,
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,

@@ -25,4 +25,4 @@
 
 This project uses the [GraphQL-Codegen](https://the-guild.dev/graphql/codegen/docs/getting-started) library to translate GraphQL object types into TypeScript types for functions, resolvers, and automated tests. When modifying the API, start by adding or updating the relevant types in the `schema.api.graphql` file.
 
-Run `yarn codegen` to automatically generate TypeScript types in the `src/generated/graphql.ts` file. Import types from `graphql.ts` as needed.
+Run `yarn codegen` to generate TypeScript types in the `src/generated/graphql.ts` file. Import types from `graphql.ts` as needed.

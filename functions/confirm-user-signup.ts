@@ -25,8 +25,8 @@ const lambdaHandler = async (event: PostConfirmationTriggerEvent) => {
       new PutCommand({
         TableName: TABLE_NAME,
         Item: {
-          PK: `TENANT#${tenantId}`,
-          SK: `USER#${username}`,
+          PK: `TENANT#${tenantId}#USER#${username}`,
+          SK: `DETAILS#${event.request.userAttributes['family_name']}`,
           username: username,
           firstName: event.request.userAttributes['given_name'],
           lastName: event.request.userAttributes['family_name'],
@@ -34,12 +34,12 @@ const lambdaHandler = async (event: PostConfirmationTriggerEvent) => {
           phone: event.request.userAttributes['phone_number'],
           status: UserStatus.Enabled,
           roles: event.request.clientMetadata?.roles,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          tenantId: tenantId
         },
-        ConditionExpression: 'attribute_not_exists(username)'
+        ConditionExpression: 'attribute_not_exists(PK)'
       })
     );
-    logger.info(`[${username}] - added user to tenant [${tenantId}]`, result);
   } catch (error) {
     logger.critical(error);
     throw error;
