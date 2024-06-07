@@ -16,7 +16,7 @@ export const request = (
 
 export const response = (ctx: Context): UsersPage => {
   return {
-    users: ctx.result?.items,
+    users: ctx.result?.items || [],
     nextToken: ctx.result?.nextToken
   };
 };

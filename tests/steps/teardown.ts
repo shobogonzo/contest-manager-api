@@ -1,14 +1,14 @@
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.test.local' });
+
 import {
   AdminDeleteUserCommand,
   CognitoIdentityProviderClient
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  ScanCommand
-} from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 const { TABLE_NAME, UserPoolId } = process.env;
 const cognito = new CognitoIdentityProviderClient();
@@ -21,7 +21,7 @@ const a_tenant = async (tenant) => {
       TableName: TABLE_NAME,
       Key: {
         PK: `TENANT#${tenant.id}`,
-        SK: `DETAILS`
+        SK: 'DETAILS'
       }
     })
   );
@@ -30,7 +30,6 @@ const a_tenant = async (tenant) => {
 
 const a_user = async (
   username: string,
-  lastName: string,
   tenantId: string,
   deleteFromCognito: boolean = false
 ) => {
@@ -43,7 +42,7 @@ const a_user = async (
       TableName: TABLE_NAME,
       Key: {
         PK: `TENANT#${tenantId}#USER#${username}`,
-        SK: `DETAILS#${lastName}`
+        SK: 'DETAILS'
       }
     })
   );

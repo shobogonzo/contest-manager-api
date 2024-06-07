@@ -97,11 +97,26 @@ appSync:
         tableName: !Ref ContestManagerTable
 
 functions:
+  onboardNewTenant:
+    handler: functions/onboard-new-tenant.handler
+    environment:
+      TABLE_NAME: !Ref ContestManagerTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt ContestManagerTable.Arn
+
   confirmUserSignup:
     handler: functions/confirm-user-signup.handler
     environment:
       TABLE_NAME: !Ref ContestManagerTable
     iamRoleStatements:
+      - Effect: Allow
+        Action: cognito-idp:AdminUpdateUserAttributes
+        Resource: arn:aws:cognito-idp:us-east-1:637423321676:userpool/us-east-1_0v8QWXNZ7
+      - Effect: Allow
+        Action: dynamodb:Query
+        Resource: !Sub ${ContestManagerTable.Arn}/index/GSI1
       - Effect: Allow
         Action: dynamodb:PutItem
         Resource: !GetAtt ContestManagerTable.Arn
@@ -153,10 +168,22 @@ resources:
           - Name: email
             Required: true
           - Name: tenantId
-            Mutable: false
+            AttributeDataType: String
+          - Name: tenantName
+            AttributeDataType: String
+          - Name: roles
             AttributeDataType: String
         LambdaConfig:
+          PreSignUp: !GetAtt OnboardNewTenantLambdaFunction.Arn
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    UserPoolPreSignUpLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref OnboardNewTenantLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
 
     UserPoolInvokeConfirmUserSignupLambdaPermission:
       Type: AWS::Lambda::Permission
@@ -164,7 +191,7 @@ resources:
         Action: lambda:invokeFunction
         FunctionName: !Ref ConfirmUserSignupLambdaFunction
         Principal: cognito-idp.amazonaws.com
-        SourceArn: !GetAtt UserPool.Arn # TODO will need to be called by other user pools eventually
+        SourceArn: !GetAtt UserPool.Arn
 
     UserPoolClient:
       Type: AWS::Cognito::UserPoolClient
@@ -232,8 +259,6 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         AccessControl: Private
-        BucketName:
-          Fn::Sub: ${self:service}-amplify-config-${sls:stage}
 
     Distribution:
       Type: AWS::CloudFront::Distribution

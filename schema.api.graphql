@@ -14,26 +14,20 @@ type Mutation {
 
 interface IUser {
   username: String!
-  status: UserStatus!
   firstName: String!
   lastName: String!
   email: AWSEmail!
-  phone: String #TODO use AWSPhoneNumber
-  roles: [UserRole!]!
 }
 
 type User implements IUser {
   username: String!
-  status: UserStatus!
   firstName: String!
   lastName: String!
   email: AWSEmail!
-  phone: String
-  roles: [UserRole!]!
 }
 
 type UsersPage {
-  users: [User!]
+  users: [User!]!
   nextToken: String
 }
 
@@ -41,26 +35,23 @@ input UserInput {
   firstName: String!
   lastName: String!
   email: AWSEmail!
-  phone: String
 }
 
 # type UserProfileInput {
 #   firstName: String!
 #   lastName: String!
 #   email: AWSEmail!
-#   phone: String
 # }
 
 # type UserProfile {
 #   firstName: String!
 #   lastName: String!
 #   email: AWSEmail!
-#   phone: String
 # }
 
 enum UserRole {
   SUPER_USER
-  ADMINISTRATOR
+  ADMIN
   SCHEDULER
   DIRECTOR
   CONTESTANT

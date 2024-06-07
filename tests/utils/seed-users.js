@@ -18,17 +18,16 @@ const userSeedData = Array.from({ length: 50 }, () => {
   const lastName = chance.last({ nationality: 'en' });
   return {
     PK: `TENANT#${tenantId}#USER#${username}`,
-    SK: `DETAILS#${lastName}`,
+    SK: 'DETAILS',
     username,
     firstName: chance.first({ nationality: 'en' }),
     lastName,
     email: chance.email(),
-    phone: chance.phone(),
     status: 'ENABLED',
     roles: [
       chance.pickone([
         'SUPER_USER',
-        'ADMINISTRATOR',
+        'ADMIN',
         'SCHEDULER',
         'DIRECTOR',
         'CONTESTANT',

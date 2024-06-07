@@ -1,4 +1,7 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.test.local' });
+
 import {
   CognitoIdentityProviderClient,
   AdminAddUserToGroupCommand,
@@ -8,7 +11,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { UserRole, UserStatus } from '../../src/generated/graphql';
+import { UserRole } from '../../src/generated/graphql';
 import { forIn } from 'lodash';
 
 const client = new DynamoDBClient();
@@ -19,13 +22,13 @@ const a_random_user = () => {
   const firstName = chance.first({ nationality: 'en' });
   const lastName = chance.last({ nationality: 'en' });
   const email = `${firstName}-${lastName}@test.com`;
+  const password = chance.string({ length: 10, password: true });
+  const tenantName = chance.company();
   const username = email;
   const status = chance.pickone(['active', 'inactive']);
-  const phone = chance.phone({ formatted: false });
-  const password = chance.string({ length: 10, password: true });
   const roles = chance.pickset(
     [
-      UserRole.Administrator,
+      UserRole.Admin,
       UserRole.Director,
       UserRole.Scheduler,
       UserRole.Contestant,
@@ -35,18 +38,18 @@ const a_random_user = () => {
   );
 
   return {
-    username,
-    status,
     firstName,
     lastName,
     email,
-    phone,
     password,
+    tenantName,
+    username,
+    status,
     roles
   };
 };
 
-const an_existing_tenant = async (name: string, status: string) => {
+const an_existing_tenant = async (name: string) => {
   const tenantId = chance.guid();
 
   console.log(`creating tenant [${name}] - [${tenantId}]`);
@@ -56,10 +59,11 @@ const an_existing_tenant = async (name: string, status: string) => {
       TableName: process.env.TABLE_NAME,
       Item: {
         PK: `TENANT#${tenantId}`,
-        SK: `DETAILS#${name}`,
+        SK: `DETAILS`,
         name,
-        status,
-        createdAt
+        GSI1PK: `TENANTNAME#${name}`,
+        GSI1SK: `TENANT#${tenantId}`,
+        createdAt: new Date().toISOString()
       }
     })
   );
@@ -67,16 +71,12 @@ const an_existing_tenant = async (name: string, status: string) => {
   return {
     id: tenantId,
     name,
-    status,
     createdAt
   };
 };
 
-const an_existing_user = async (
-  roles: UserRole[],
-  status: UserStatus,
-  tenantId: string
-) => {
+// TODO user cognito sign up
+const an_existing_user = async (tenantId: string) => {
   const firstName = chance.first({ nationality: 'en' });
   const lastName = chance.last({ nationality: 'en' });
   const suffix = chance.string({
@@ -94,13 +94,11 @@ const an_existing_user = async (
       TableName: process.env.TABLE_NAME,
       Item: {
         PK: `TENANT#${tenantId}#USER#${username}`,
-        SK: `DETAILS#${lastName}`,
+        SK: 'DETAILS',
         username,
         firstName,
         lastName,
         email,
-        roles,
-        status,
         createdAt: new Date().toJSON()
       }
     })
@@ -120,11 +118,8 @@ const an_authenticated_user = async (roles: UserRole[]) => {
     ? SERVICE_NAME
     : chance.guid();
 
-  const { username, firstName, lastName, email } = await an_existing_user(
-    roles,
-    UserStatus.Enabled,
-    tenantId
-  );
+  const { username, firstName, lastName, email } =
+    await an_existing_user(tenantId);
   const tmpPassword = chance.string({ length: 10, password: true });
   console.log(
     `[${username}] - creating Cognito user under tenant [${tenantId}]`
