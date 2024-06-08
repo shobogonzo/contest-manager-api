@@ -113,7 +113,7 @@ functions:
     iamRoleStatements:
       - Effect: Allow
         Action: cognito-idp:AdminUpdateUserAttributes
-        Resource: arn:aws:cognito-idp:us-east-1:637423321676:userpool/us-east-1_0v8QWXNZ7
+        Resource: !Sub arn:aws:cognito-idp:${self:custom.region}:${AWS::AccountId}:userpool/*
       - Effect: Allow
         Action: dynamodb:Query
         Resource: !Sub ${ContestManagerTable.Arn}/index/GSI1
