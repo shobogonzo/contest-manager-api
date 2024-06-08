@@ -11,13 +11,14 @@ describe('When confirmUserSignup runs', () => {
 
   beforeAll(async () => {
     tenant = await given.an_existing_tenant(chance.company());
-    user = await given.an_existing_user(tenant.id);
+    user = await given.an_unconfirmed_user(tenant);
+
     await when.we_invoke_confirmUserSignup(user, tenant.name);
   });
 
   afterAll(async () => {
-    await teardown.a_user(user.username, tenant.id);
-    await teardown.a_tenant(tenant);
+    await teardown.a_user(user.username, tenant.id, true);
+    await teardown.a_tenant(tenant.id);
   });
 
   it('A new user should be created in DynamoDB', async () => {
@@ -33,6 +34,8 @@ describe('When confirmUserSignup runs', () => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      GSI1PK: `TENANT#${tenant.id}#USERS`,
+      GSI1SK: `USER#${user.username}`,
       createdAt: expect.stringMatching(
         /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d+)?Z?/g
       )

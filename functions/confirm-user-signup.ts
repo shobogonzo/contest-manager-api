@@ -73,6 +73,8 @@ const lambdaHandler = async (event: PostConfirmationTriggerEvent) => {
           email: event.request.userAttributes['email'],
           // status: UserStatus.Enabled,
           // roles,
+          GSI1PK: `TENANT#${tenantId}#USERS`,
+          GSI1SK: `USER#${username}`,
           createdAt: new Date().toISOString()
         },
         ConditionExpression: 'attribute_not_exists(PK)'

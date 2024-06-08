@@ -17,7 +17,7 @@ describe('When onboardNewTenant runs', () => {
 
   afterAll(async () => {
     await teardown.a_user(user.username, tenant.id);
-    await teardown.a_tenant(tenant);
+    await teardown.a_tenant(tenant.id);
   });
 
   it('A new tenant should be created in DynamoDB', async () => {

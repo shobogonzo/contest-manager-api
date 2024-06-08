@@ -15,17 +15,17 @@ const cognito = new CognitoIdentityProviderClient();
 const ddbClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(ddbClient);
 
-const a_tenant = async (tenant) => {
+const a_tenant = async (tenantId: string) => {
   await docClient.send(
     new DeleteCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenant.id}`,
+        PK: `TENANT#${tenantId}`,
         SK: 'DETAILS'
       }
     })
   );
-  console.log(`[${tenant.id}] - tenant deleted`);
+  console.log(`[${tenantId}] - tenant deleted`);
 };
 
 const a_user = async (

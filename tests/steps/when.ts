@@ -10,6 +10,7 @@ import {
 import { Context } from 'aws-lambda';
 import { User } from '../../src/generated/graphql';
 
+const { UserPoolId, UserPoolClientId } = process.env;
 const cognito = new CognitoIdentityProviderClient();
 
 const we_invoke_confirmUserSignup = async (user: User, tenantName: string) => {
@@ -18,11 +19,11 @@ const we_invoke_confirmUserSignup = async (user: User, tenantName: string) => {
   const event = {
     version: '1',
     region: 'us-east-1',
-    userPoolId: 'us-east-1_0v8QWXNZ7',
+    userPoolId: UserPoolId,
     userName: user.username,
     callerContext: {
       awsSdkVersion: 'aws-sdk-unknown-unknown',
-      clientId: '7hee44qioktt3tuf1ohhgfg001'
+      clientId: UserPoolClientId
     },
     triggerSource: 'PostConfirmation_ConfirmSignUp',
     request: {
@@ -50,11 +51,11 @@ const we_invoke_onboardNewTenant = async (
   const event = {
     version: '1',
     region: 'us-east-1',
-    userPoolId: 'us-east-1_0v8QWXNZ7',
+    userPoolId: UserPoolId,
     userName: user.username,
     callerContext: {
       awsSdkVersion: 'aws-sdk-unknown-unknown',
-      clientId: '7hee44qioktt3tuf1ohhgfg001'
+      clientId: UserPoolClientId
     },
     triggerSource: 'PreSignUp_SignUp',
     request: {
@@ -78,23 +79,25 @@ const we_invoke_onboardNewTenant = async (
 
 // Simulates a user signing up with the Amplify Authenticator component. This
 // will trigger the PreSignUp_SignUp Lambda
-const a_user_signs_up = async (user: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  tenantName: string;
-}) => {
+const a_user_signs_up = async (
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  },
+  tenantName: string
+) => {
   await cognito.send(
     new SignUpCommand({
-      ClientId: process.env.UserPoolClientId,
+      ClientId: UserPoolClientId,
       Username: user.email,
       Password: user.password,
       UserAttributes: [
         { Name: 'given_name', Value: user.firstName },
         { Name: 'family_name', Value: user.lastName },
         { Name: 'email', Value: user.email },
-        { Name: 'custom:tenantName', Value: user.tenantName }
+        { Name: 'custom:tenantName', Value: tenantName }
       ]
     })
   );
@@ -105,7 +108,7 @@ const a_user_signs_up = async (user: {
 const a_user_confirms_cognito_account = async (user: { username }) => {
   await cognito.send(
     new AdminConfirmSignUpCommand({
-      UserPoolId: process.env.UserPoolId,
+      UserPoolId: UserPoolId,
       Username: user.username
     })
   );
