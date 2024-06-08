@@ -35,7 +35,7 @@ describe('New tenant signs up for Contest Manager', () => {
           };
         },
         {
-          retries: 5,
+          retries: 3,
           minTimeout: 1000
         }
       );
@@ -58,7 +58,7 @@ describe('New tenant signs up for Contest Manager', () => {
           expect(tenantIdAttr.Value).toEqual(tenant.id);
         },
         {
-          retries: 5,
+          retries: 3,
           minTimeout: 1000
         }
       );
