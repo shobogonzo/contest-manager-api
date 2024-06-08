@@ -1,4 +1,7 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.test.local' });
+
 import {
   CognitoIdentityProviderClient,
   AdminAddUserToGroupCommand,
@@ -8,32 +11,59 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { UserRole, UserStatus } from '../../src/generated/graphql';
+import { UserRole } from '../../src/generated/graphql';
 import { forIn } from 'lodash';
 
+const { SERVICE_NAME, UserPoolId, UserPoolClientId } = process.env;
+const chance = require('chance').Chance();
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
-const chance = require('chance').Chance();
+const cognito = new CognitoIdentityProviderClient();
 
 const a_random_user = () => {
   const firstName = chance.first({ nationality: 'en' });
   const lastName = chance.last({ nationality: 'en' });
   const email = `${firstName}-${lastName}@test.com`;
-  const username = email;
-  const phone = chance.phone({ formatted: false });
   const password = chance.string({ length: 10, password: true });
+  const tenantName = chance.company();
+  const username = email;
+  const status = chance.pickone(['active', 'inactive']);
+  const roles = chance.pickset(
+    [
+      UserRole.Admin,
+      UserRole.Director,
+      UserRole.Scheduler,
+      UserRole.Contestant,
+      UserRole.Judge
+    ],
+    chance.natural({ min: 1, max: 5 })
+  );
 
   return {
-    username,
     firstName,
     lastName,
     email,
-    phone,
-    password
+    password,
+    tenantName,
+    username,
+    status,
+    roles
   };
 };
 
-const an_existing_tenant = async (name: string, status: string) => {
+const a_random_tenant = () => {
+  const id = chance.guid();
+  const name = chance.company();
+  const createdAt = new Date().toJSON();
+
+  return {
+    id,
+    name,
+    createdAt
+  };
+};
+
+const an_existing_tenant = async (name: string) => {
   const tenantId = chance.guid();
 
   console.log(`creating tenant [${name}] - [${tenantId}]`);
@@ -45,8 +75,9 @@ const an_existing_tenant = async (name: string, status: string) => {
         PK: `TENANT#${tenantId}`,
         SK: `DETAILS`,
         name,
-        status,
-        createdAt
+        GSI1PK: `TENANTNAME#${name}`,
+        GSI1SK: `TENANT#${tenantId}`,
+        createdAt: new Date().toISOString()
       }
     })
   );
@@ -54,16 +85,11 @@ const an_existing_tenant = async (name: string, status: string) => {
   return {
     id: tenantId,
     name,
-    status,
     createdAt
   };
 };
 
-const an_existing_user = async (
-  roles: UserRole[],
-  status: UserStatus,
-  tenantId: string
-) => {
+const an_unconfirmed_user = async (tenant: { id: string; name: string }) => {
   const firstName = chance.first({ nationality: 'en' });
   const lastName = chance.last({ nationality: 'en' });
   const suffix = chance.string({
@@ -72,24 +98,21 @@ const an_existing_user = async (
   });
   const username = `${firstName.charAt(0)}${lastName}-${suffix}`.toLowerCase();
   const email = `${firstName}-${lastName}-${suffix}@test.com`;
+  const password = chance.string({ length: 10, password: true });
 
-  console.log(
-    `adding user [${username}] to tenant [${tenantId}] in table [${process.env.TABLE_NAME}]`
-  );
-  await docClient.send(
-    new PutCommand({
-      TableName: process.env.TABLE_NAME,
-      Item: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${username}`,
-        username,
-        firstName,
-        lastName,
-        email,
-        roles,
-        status,
-        createdAt: new Date().toJSON()
-      }
+  console.log(`adding user [${username}] to tenant [${tenant.id}]`);
+  await cognito.send(
+    new AdminCreateUserCommand({
+      UserPoolId: UserPoolId,
+      Username: username,
+      MessageAction: 'SUPPRESS',
+      TemporaryPassword: password,
+      UserAttributes: [
+        { Name: 'given_name', Value: firstName },
+        { Name: 'family_name', Value: lastName },
+        { Name: 'email', Value: email },
+        { Name: 'custom:tenantName', Value: tenant.name }
+      ]
     })
   );
 
@@ -102,22 +125,17 @@ const an_existing_user = async (
 };
 
 const an_authenticated_user = async (roles: UserRole[]) => {
-  const { SERVICE_NAME, UserPoolId, UserPoolClientId } = process.env;
   const tenantId = roles.some((x) => x === UserRole.SuperUser)
     ? SERVICE_NAME
     : chance.guid();
 
-  const { username, firstName, lastName, email } = await an_existing_user(
-    roles,
-    UserStatus.Enabled,
-    tenantId
-  );
+  const { username, firstName, lastName, email } =
+    await an_unconfirmed_user(tenantId);
   const tmpPassword = chance.string({ length: 10, password: true });
   console.log(
     `[${username}] - creating Cognito user under tenant [${tenantId}]`
   );
 
-  const cognito = new CognitoIdentityProviderClient();
   await cognito.send(
     new AdminCreateUserCommand({
       UserPoolId: UserPoolId,
@@ -195,7 +213,8 @@ const an_authenticated_user = async (roles: UserRole[]) => {
 
 export default {
   a_random_user,
+  a_random_tenant,
   an_existing_tenant,
-  an_existing_user,
+  an_unconfirmed_user,
   an_authenticated_user
 };

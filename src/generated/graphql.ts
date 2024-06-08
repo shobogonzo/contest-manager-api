@@ -27,8 +27,6 @@ export type IUser = {
   email: Scalars['AWSEmail']['output'];
   firstName: Scalars['String']['output'];
   lastName: Scalars['String']['output'];
-  phone?: Maybe<Scalars['String']['output']>;
-  status: UserStatus;
   username: Scalars['String']['output'];
 };
 
@@ -58,8 +56,6 @@ export type User = IUser & {
   email: Scalars['AWSEmail']['output'];
   firstName: Scalars['String']['output'];
   lastName: Scalars['String']['output'];
-  phone?: Maybe<Scalars['String']['output']>;
-  status: UserStatus;
   username: Scalars['String']['output'];
 };
 
@@ -67,11 +63,10 @@ export type UserInput = {
   email: Scalars['AWSEmail']['input'];
   firstName: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
-  phone?: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum UserRole {
-  Administrator = 'ADMINISTRATOR',
+  Admin = 'ADMIN',
   Contestant = 'CONTESTANT',
   Director = 'DIRECTOR',
   Judge = 'JUDGE',
@@ -87,5 +82,5 @@ export enum UserStatus {
 export type UsersPage = {
   __typename?: 'UsersPage';
   nextToken?: Maybe<Scalars['String']['output']>;
-  users?: Maybe<Array<User>>;
+  users: Array<User>;
 };

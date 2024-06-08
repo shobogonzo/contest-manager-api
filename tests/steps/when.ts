@@ -1,30 +1,40 @@
-require('dotenv').config();
-import { Context } from 'aws-lambda';
-import { User, UserRole } from '../../src/generated/graphql';
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.test.local' });
 
-const we_invoke_confirmUserSignup = async (user: User, tenantId: string) => {
+import {
+  AdminConfirmSignUpCommand,
+  CognitoIdentityProviderClient,
+  SignUpCommand
+} from '@aws-sdk/client-cognito-identity-provider';
+import { Context } from 'aws-lambda';
+import { User } from '../../src/generated/graphql';
+
+const { UserPoolId, UserPoolClientId } = process.env;
+const cognito = new CognitoIdentityProviderClient();
+
+const we_invoke_confirmUserSignup = async (user: User, tenantName: string) => {
   const { handler } = await import('../../functions/confirm-user-signup');
   const context = {};
   const event = {
     version: '1',
-    region: process.env.AWS_REGION,
-    userPoolId: process.env.UserPoolId,
+    region: 'us-east-1',
+    userPoolId: UserPoolId,
     userName: user.username,
+    callerContext: {
+      awsSdkVersion: 'aws-sdk-unknown-unknown',
+      clientId: UserPoolClientId
+    },
     triggerSource: 'PostConfirmation_ConfirmSignUp',
     request: {
       userAttributes: {
-        sub: user.username,
-        'cognito:email_alias': user.email,
-        'cognito:user_status': 'CONFIRMED',
+        sub: 'c4d8b4a8-b091-702c-435d-276d025fdea3',
         email_verified: 'true',
+        'cognito:user_status': 'CONFIRMED',
         given_name: user.firstName,
         family_name: user.lastName,
         email: user.email,
-        phone_number: user.phone,
-        'custom:tenantId': tenantId
-      },
-      clientMetadata: {
-        roles: [UserRole.Administrator, UserRole.Scheduler]
+        'custom:tenantName': tenantName
       }
     },
     response: {}
@@ -33,6 +43,80 @@ const we_invoke_confirmUserSignup = async (user: User, tenantId: string) => {
   return await handler(event, context as Context);
 };
 
+const we_invoke_onboardNewTenant = async (
+  user: User & { tenantName: string }
+) => {
+  const { handler } = await import('../../functions/onboard-new-tenant');
+  const context = {};
+  const event = {
+    version: '1',
+    region: 'us-east-1',
+    userPoolId: UserPoolId,
+    userName: user.username,
+    callerContext: {
+      awsSdkVersion: 'aws-sdk-unknown-unknown',
+      clientId: UserPoolClientId
+    },
+    triggerSource: 'PreSignUp_SignUp',
+    request: {
+      userAttributes: {
+        given_name: user.firstName,
+        family_name: user.lastName,
+        email: user.email,
+        'custom:tenantName': user.tenantName
+      },
+      validationData: null
+    },
+    response: {
+      autoConfirmUser: false,
+      autoVerifyEmail: false,
+      autoVerifyPhone: false
+    }
+  };
+
+  await handler(event, context as Context);
+};
+
+// Simulates a user signing up with the Amplify Authenticator component. This
+// will trigger the PreSignUp_SignUp Lambda
+const a_user_signs_up = async (
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  },
+  tenantName: string
+) => {
+  await cognito.send(
+    new SignUpCommand({
+      ClientId: UserPoolClientId,
+      Username: user.email,
+      Password: user.password,
+      UserAttributes: [
+        { Name: 'given_name', Value: user.firstName },
+        { Name: 'family_name', Value: user.lastName },
+        { Name: 'email', Value: user.email },
+        { Name: 'custom:tenantName', Value: tenantName }
+      ]
+    })
+  );
+};
+
+// Simulate a user confirming their Cognito account using the PIN that was
+// emailed to them. This will trigger the PostConfirmation_ConfirmSignUp Lambda
+const a_user_confirms_cognito_account = async (user: { username }) => {
+  await cognito.send(
+    new AdminConfirmSignUpCommand({
+      UserPoolId: UserPoolId,
+      Username: user.username
+    })
+  );
+};
+
 export default {
-  we_invoke_confirmUserSignup
+  we_invoke_confirmUserSignup,
+  we_invoke_onboardNewTenant,
+  a_user_signs_up,
+  a_user_confirms_cognito_account
 };

@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.test.local' });
+
 import {
   AdminGetUserCommand,
   CognitoIdentityProviderClient,
@@ -7,7 +11,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
   GetCommand,
-  ScanCommand
+  QueryCommand
 } from '@aws-sdk/lib-dynamodb';
 
 const { TABLE_NAME, UserPoolId } = process.env;
@@ -15,13 +19,32 @@ const cognito = new CognitoIdentityProviderClient();
 const ddbClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(ddbClient);
 
-const tenant_exists_in_DynamoDB = async (tenant) => {
-  console.log(`looking for tenant [${tenant.id}] in table [${TABLE_NAME}]`);
+const tenant_exists_in_DynamoDB = async (tenantName: string) => {
+  console.log(`looking for tenant [${tenantName}] in table [${TABLE_NAME}]`);
+  const resp = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :pk',
+      ExpressionAttributeValues: {
+        ':pk': `TENANTNAME#${tenantName}`
+      }
+    })
+  );
+
+  expect(resp.Items).toBeTruthy();
+  expect(resp.Count).toBe(1);
+
+  return resp.Items[0];
+};
+
+const user_exists_in_DynamoDB = async (username: string, tenantId: string) => {
+  console.log(`looking for user [${username}] in tenant [${tenantId}]`);
   const resp = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenant.id}`,
+        PK: `TENANT#${tenantId}#USER#${username}`,
         SK: 'DETAILS'
       }
     })
@@ -32,24 +55,7 @@ const tenant_exists_in_DynamoDB = async (tenant) => {
   return resp.Item;
 };
 
-const user_exists_in_DynamoDB = async (username: string, tenantId: string) => {
-  console.log(`looking for user [${username}] in tenant [${tenantId}]`);
-  const resp = await docClient.send(
-    new GetCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${username}`
-      }
-    })
-  );
-
-  expect(resp.Item).toBeTruthy();
-
-  return resp.Item;
-};
-
-const user_exists_in_Cognito = async (username) => {
+const user_exists_in_Cognito = async (username: string) => {
   console.log(`looking for user [${username}] in user pool [${UserPoolId}]`);
   const resp = await cognito.send(
     new AdminGetUserCommand({
@@ -78,29 +84,9 @@ const user_belongs_to_CognitoGroup = async (username, group) => {
   return resp;
 };
 
-const user_confirmation_exists_in_DynamoDB = async (username, tenantId) => {
-  console.log(
-    `looking for confirmation for user [${username}] under tenant [${tenantId}]`
-  );
-  const resp = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'SK = :sk',
-      ExpressionAttributeValues: {
-        ':sk': `TENANT#${tenantId}#USER#${username}`
-      }
-    })
-  );
-
-  expect(resp.Items[0]).toBeTruthy();
-
-  return resp.Items[0];
-};
-
 export default {
   tenant_exists_in_DynamoDB,
   user_exists_in_DynamoDB,
   user_exists_in_Cognito,
-  user_belongs_to_CognitoGroup,
-  user_confirmation_exists_in_DynamoDB
+  user_belongs_to_CognitoGroup
 };

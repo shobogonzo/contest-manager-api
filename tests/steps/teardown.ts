@@ -1,31 +1,31 @@
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.test.local' });
+
 import {
   AdminDeleteUserCommand,
   CognitoIdentityProviderClient
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  ScanCommand
-} from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 const { TABLE_NAME, UserPoolId } = process.env;
 const cognito = new CognitoIdentityProviderClient();
 const ddbClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(ddbClient);
 
-const a_tenant = async (tenant) => {
+const a_tenant = async (tenantId: string) => {
   await docClient.send(
     new DeleteCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenant.id}`,
-        SK: `DETAILS`
+        PK: `TENANT#${tenantId}`,
+        SK: 'DETAILS'
       }
     })
   );
-  console.log(`[${tenant.id}] - tenant deleted`);
+  console.log(`[${tenantId}] - tenant deleted`);
 };
 
 const a_user = async (
@@ -41,34 +41,12 @@ const a_user = async (
     new DeleteCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${username}`
+        PK: `TENANT#${tenantId}#USER#${username}`,
+        SK: 'DETAILS'
       }
     })
   );
-  const tokenResp = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'SK = :sk',
-      ExpressionAttributeValues: {
-        ':sk': `TENANT#${tenantId}#USER#${username}`
-      }
-    })
-  );
-  const token = tokenResp.Items[0];
-  if (token) {
-    console.log(`[${username}] - deleting user token [${token.PK}]`);
-    await docClient.send(
-      new DeleteCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: token.PK,
-          SK: token.SK
-        }
-      })
-    );
-    console.log(`[${username}] - user deleted from tenant [${tenantId}]`);
-  }
+
   if (deleteFromCognito) {
     console.log(`[${username}] - deleting user from user pool [${UserPoolId}]`);
     await cognito.send(
