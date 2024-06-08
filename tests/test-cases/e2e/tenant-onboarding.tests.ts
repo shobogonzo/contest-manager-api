@@ -3,6 +3,7 @@ import given from '../../steps/given';
 import teardown from '../../steps/teardown';
 import then from '../../steps/then';
 import when from '../../steps/when';
+import retry from 'async-retry';
 import { Chance } from 'chance';
 const chance = new Chance();
 
@@ -25,11 +26,19 @@ describe('New tenant signs up for Contest Manager', () => {
 
   describe('When the user account is created', () => {
     it('Creates a new tenant in DynamoDB', async () => {
-      const ddbTenant = await then.tenant_exists_in_DynamoDB(tenant.name);
-      tenant = {
-        id: ddbTenant.PK.split('#')[1],
-        name: ddbTenant.name
-      };
+      await retry(
+        async () => {
+          const ddbTenant = await then.tenant_exists_in_DynamoDB(tenant.name);
+          tenant = {
+            id: ddbTenant.PK.split('#')[1],
+            name: ddbTenant.name
+          };
+        },
+        {
+          retries: 5,
+          minTimeout: 1000
+        }
+      );
     });
   });
 
@@ -39,12 +48,20 @@ describe('New tenant signs up for Contest Manager', () => {
     });
 
     it('Stores tenantId as a custom claim', async () => {
-      const cognitoUser = await then.user_exists_in_Cognito(user.email);
-      const tenantIdAttr = cognitoUser.UserAttributes.find(
-        (attr) => attr.Name === 'custom:tenantId'
+      await retry(
+        async () => {
+          const cognitoUser = await then.user_exists_in_Cognito(user.email);
+          const tenantIdAttr = cognitoUser.UserAttributes.find(
+            (attr) => attr.Name === 'custom:tenantId'
+          );
+          expect(tenantIdAttr).toBeDefined();
+          expect(tenantIdAttr.Value).toEqual(tenant.id);
+        },
+        {
+          retries: 5,
+          minTimeout: 1000
+        }
       );
-      expect(tenantIdAttr).toBeDefined();
-      expect(tenantIdAttr.Value).toEqual(tenant.id);
     });
   });
 });
