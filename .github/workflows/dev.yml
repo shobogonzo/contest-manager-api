@@ -43,7 +43,7 @@ jobs:
 
       - name: Find and destroy Amplify config bucket
         run: |
-          BUCKET_NAME_PART="contest-manager-service-amplify-config-dev-ci"
+          BUCKET_NAME_PART="contest-manager-service-dev-ci-amplifyconfigbucket"
           
           BUCKET_NAMES=$(aws s3api list-buckets --query "Buckets[].Name" --output text)
           
