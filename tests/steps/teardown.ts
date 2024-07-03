@@ -41,8 +41,8 @@ const a_user = async (
     new DeleteCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenantId}#USER#${username}`,
-        SK: 'DETAILS'
+        PK: `TENANT#${tenantId}#USER`,
+        SK: `DETAILS#${username}`
       }
     })
   );

@@ -98,7 +98,7 @@ const an_unconfirmed_user = async (tenant: { id: string; name: string }) => {
   });
   const username = `${firstName.charAt(0)}${lastName}-${suffix}`.toLowerCase();
   const email = `${firstName}-${lastName}-${suffix}@test.com`;
-  const password = chance.string({ length: 10, password: true });
+  const tmpPassword = chance.string({ length: 10, password: true });
 
   console.log(`adding user [${username}] to tenant [${tenant.id}]`);
   await cognito.send(
@@ -106,7 +106,7 @@ const an_unconfirmed_user = async (tenant: { id: string; name: string }) => {
       UserPoolId: UserPoolId,
       Username: username,
       MessageAction: 'SUPPRESS',
-      TemporaryPassword: password,
+      TemporaryPassword: tmpPassword,
       UserAttributes: [
         { Name: 'given_name', Value: firstName },
         { Name: 'family_name', Value: lastName },
@@ -120,7 +120,8 @@ const an_unconfirmed_user = async (tenant: { id: string; name: string }) => {
     username,
     firstName,
     lastName,
-    email
+    email,
+    tmpPassword
   };
 };
 
@@ -129,30 +130,8 @@ const an_authenticated_user = async (roles: UserRole[]) => {
     ? SERVICE_NAME
     : chance.guid();
 
-  const { username, firstName, lastName, email } =
+  const { username, firstName, lastName, email, tmpPassword } =
     await an_unconfirmed_user(tenantId);
-  const tmpPassword = chance.string({ length: 10, password: true });
-  console.log(
-    `[${username}] - creating Cognito user under tenant [${tenantId}]`
-  );
-
-  await cognito.send(
-    new AdminCreateUserCommand({
-      UserPoolId: UserPoolId,
-      Username: username,
-      MessageAction: 'SUPPRESS',
-      TemporaryPassword: tmpPassword,
-      UserAttributes: [
-        { Name: 'email', Value: email },
-        { Name: 'given_name', Value: firstName },
-        { Name: 'family_name', Value: lastName },
-        { Name: 'custom:tenantId', Value: tenantId },
-        { Name: 'email_verified', Value: 'true' }
-      ],
-      ClientMetadata: { roles: JSON.stringify(roles) }
-    })
-  );
-  console.log(`[${username}] - user has signed up [${email}]`);
 
   forIn(roles, async (role: UserRole) => {
     await cognito.send(

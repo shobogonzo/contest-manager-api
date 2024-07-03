@@ -28,13 +28,13 @@ describe('When confirmUserSignup runs', () => {
     );
 
     expect(ddbUser).toMatchObject({
-      PK: `TENANT#${tenant.id}#USER#${user.username}`,
-      SK: 'DETAILS',
+      PK: `TENANT#${tenant.id}#USER`,
+      SK: `DETAILS#${user.username}`,
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      GSI1PK: `TENANT#${tenant.id}#USERS`,
+      GSI1PK: `TENANT#${tenant.id}`,
       GSI1SK: `USER#${user.username}`,
       createdAt: expect.stringMatching(
         /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d+)?Z?/g

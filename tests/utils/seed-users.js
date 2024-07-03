@@ -17,8 +17,8 @@ const userSeedData = Array.from({ length: 50 }, () => {
 
   const lastName = chance.last({ nationality: 'en' });
   return {
-    PK: `TENANT#${tenantId}#USER#${username}`,
-    SK: 'DETAILS',
+    PK: `TENANT#${tenantId}#USER`,
+    SK: `DETAILS#${username}`,
     username,
     firstName: chance.first({ nationality: 'en' }),
     lastName,

@@ -65,15 +65,15 @@ const lambdaHandler = async (event: PostConfirmationTriggerEvent) => {
       new PutCommand({
         TableName: TABLE_NAME,
         Item: {
-          PK: `TENANT#${tenantId}#USER#${username}`,
-          SK: 'DETAILS',
+          PK: `TENANT#${tenantId}#USER`,
+          SK: `DETAILS#${username}`,
           username: username,
           firstName: event.request.userAttributes['given_name'],
           lastName: event.request.userAttributes['family_name'],
           email: event.request.userAttributes['email'],
           // status: UserStatus.Enabled,
           // roles,
-          GSI1PK: `TENANT#${tenantId}#USERS`,
+          GSI1PK: `TENANT#${tenantId}`,
           GSI1SK: `USER#${username}`,
           createdAt: new Date().toISOString()
         },

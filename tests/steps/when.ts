@@ -105,7 +105,7 @@ const a_user_signs_up = async (
 
 // Simulate a user confirming their Cognito account using the PIN that was
 // emailed to them. This will trigger the PostConfirmation_ConfirmSignUp Lambda
-const a_user_confirms_cognito_account = async (user: { username }) => {
+const a_user_confirms_cognito_account = async (user: { username: string }) => {
   await cognito.send(
     new AdminConfirmSignUpCommand({
       UserPoolId: UserPoolId,

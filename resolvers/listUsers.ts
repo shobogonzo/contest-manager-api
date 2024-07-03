@@ -15,9 +15,10 @@ export const request = (
     operation: 'Query',
     index: 'GSI1',
     query: {
-      expression: 'GSI1PK = :pk',
+      expression: 'GSI1PK = :pk and begins_with(GSI1SK, :sk)',
       expressionValues: {
-        ':pk': util.dynamodb.toDynamoDB(`TENANT#${tenantId}#USERS`)
+        ':pk': util.dynamodb.toDynamoDB(`TENANT#${tenantId}`),
+        ':sk': util.dynamodb.toDynamoDB('USER')
       }
     },
     limit: ctx.args.limit,

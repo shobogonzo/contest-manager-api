@@ -44,8 +44,8 @@ const user_exists_in_DynamoDB = async (username: string, tenantId: string) => {
     new GetCommand({
       TableName: TABLE_NAME,
       Key: {
-        PK: `TENANT#${tenantId}#USER#${username}`,
-        SK: 'DETAILS'
+        PK: `TENANT#${tenantId}#USER`,
+        SK: `DETAILS#${username}`
       }
     })
   );
