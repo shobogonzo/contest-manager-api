@@ -26,6 +26,7 @@ const lambdaHandler = async (event: PostConfirmationTriggerEvent) => {
     event.triggerSource !== 'PostConfirmation_ConfirmSignUp' &&
     event.triggerSource !== 'PostConfirmation_ConfirmForgotPassword'
   ) {
+    logger.info('Skipping user creation, not a post confirmation event');
     return event;
   }
 
