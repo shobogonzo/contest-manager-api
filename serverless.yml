@@ -97,11 +97,26 @@ appSync:
         tableName: !Ref ContestManagerTable
 
 functions:
+  onboardNewTenant:
+    handler: functions/onboard-new-tenant.handler
+    environment:
+      TABLE_NAME: !Ref ContestManagerTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt ContestManagerTable.Arn
+
   confirmUserSignup:
     handler: functions/confirm-user-signup.handler
     environment:
       TABLE_NAME: !Ref ContestManagerTable
     iamRoleStatements:
+      - Effect: Allow
+        Action: cognito-idp:AdminUpdateUserAttributes
+        Resource: !Sub arn:aws:cognito-idp:${self:custom.region}:${AWS::AccountId}:userpool/*
+      - Effect: Allow
+        Action: dynamodb:Query
+        Resource: !Sub ${ContestManagerTable.Arn}/index/GSI1
       - Effect: Allow
         Action: dynamodb:PutItem
         Resource: !GetAtt ContestManagerTable.Arn
@@ -116,11 +131,24 @@ resources:
             AttributeType: S
           - AttributeName: SK
             AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
         KeySchema:
           - AttributeName: PK
             KeyType: HASH
           - AttributeName: SK
             KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
     UserPool:
@@ -140,10 +168,22 @@ resources:
           - Name: email
             Required: true
           - Name: tenantId
-            Mutable: false
+            AttributeDataType: String
+          - Name: tenantName
+            AttributeDataType: String
+          - Name: roles
             AttributeDataType: String
         LambdaConfig:
+          PreSignUp: !GetAtt OnboardNewTenantLambdaFunction.Arn
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    UserPoolPreSignUpLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref OnboardNewTenantLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
 
     UserPoolInvokeConfirmUserSignupLambdaPermission:
       Type: AWS::Lambda::Permission
@@ -219,8 +259,6 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         AccessControl: Private
-        BucketName:
-          Fn::Sub: ${self:service}-amplify-config-${sls:stage}
 
     Distribution:
       Type: AWS::CloudFront::Distribution

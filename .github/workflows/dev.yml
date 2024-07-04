@@ -41,10 +41,26 @@ jobs:
       - name: Run e2e tests
         run: yarn jest ./tests/test-cases/e2e --silent
 
-      - name: Destroy temp environment
+      - name: Find and destroy Amplify config bucket
         run: |
-          aws s3 rb s3://contest-manager-service-amplify-config-dev-ci --force
-          yarn sls remove --stage dev-ci --param="ssm-stage=dev"
+          BUCKET_NAME_PART="contest-manager-service-dev-ci-amplifyconfigbucket"
+          
+          BUCKET_NAMES=$(aws s3api list-buckets --query "Buckets[].Name" --output text)
+          
+          for BUCKET_NAME in $BUCKET_NAMES; do
+              if [[ $BUCKET_NAME == *"$BUCKET_NAME_PART"* ]]; then
+                  BUCKET_ARN="arn:aws:s3:::$BUCKET_NAME"
+                  echo "Bucket ARN: $BUCKET_ARN"
+
+                  aws s3 rm s3://$BUCKET_NAME --recursive
+                  aws s3 rb s3://$BUCKET_NAME --force
+
+                  break
+              fi
+          done
+
+      - name: Destroy temp environment
+        run: yarn sls remove --stage dev-ci --param="ssm-stage=dev"
 
       - name: Deploy to dev
         run: yarn sls deploy --stage dev
